@@ -9,6 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.resource.ResourceException;
@@ -21,18 +23,22 @@ import javax.security.auth.Subject;
 import javax.transaction.xa.XAResource;
 
 /**
- *
  * @author arungup
  */
 public class MyManagedConnection implements ManagedConnection {
-    
+
     private static final Logger LOGGER = Logger.getLogger("MyManagedConnection");
-    
-    private MyConnection connection;
-    
+
+    private List<ConnectionEventListener> listeners;
+
+    private PrintWriter logWriter;
+
+    private Object connection;
+
     FileOutputStream fos;
-    
+
     public MyManagedConnection(String file) {
+        listeners = new ArrayList<>();
         try {
             fos = new FileOutputStream(file);
         } catch (FileNotFoundException ex) {
@@ -43,12 +49,13 @@ public class MyManagedConnection implements ManagedConnection {
     @Override
     public Object getConnection(Subject subject, ConnectionRequestInfo cxRequestInfo) throws ResourceException {
         LOGGER.log(Level.INFO, "getConnection");
-        connection = new MyConnection(this);
+        connection = new MyConnectionImpl(this);
         return connection;
     }
 
     @Override
     public void destroy() throws ResourceException {
+        this.connection = null;
         try {
             fos.close();
         } catch (IOException ex) {
@@ -58,22 +65,25 @@ public class MyManagedConnection implements ManagedConnection {
 
     @Override
     public void cleanup() throws ResourceException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override
     public void associateConnection(Object connection) throws ResourceException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.connection = connection;
     }
 
     @Override
     public void addConnectionEventListener(ConnectionEventListener listener) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        listeners.add(listener);
     }
 
     @Override
     public void removeConnectionEventListener(ConnectionEventListener listener) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (listener == null)
+            throw new IllegalArgumentException("Listener is null");
+
+        listeners.remove(listener);
     }
 
     @Override
@@ -88,17 +98,37 @@ public class MyManagedConnection implements ManagedConnection {
 
     @Override
     public ManagedConnectionMetaData getMetaData() throws ResourceException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return new ManagedConnectionMetaData() {
+            @Override
+            public String getEISProductName() throws ResourceException {
+                return "My Resource Connector";
+            }
+
+            @Override
+            public String getEISProductVersion() throws ResourceException {
+                return "1.0";
+            }
+
+            @Override
+            public int getMaxConnections() throws ResourceException {
+                return 10;
+            }
+
+            @Override
+            public String getUserName() throws ResourceException {
+                return null;
+            }
+        };
     }
 
     @Override
     public void setLogWriter(PrintWriter out) throws ResourceException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.logWriter = out;
     }
 
     @Override
     public PrintWriter getLogWriter() throws ResourceException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return logWriter;
     }
-    
+
 }

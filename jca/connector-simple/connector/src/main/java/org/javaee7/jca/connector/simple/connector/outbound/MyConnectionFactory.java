@@ -5,10 +5,16 @@
  */
 package org.javaee7.jca.connector.simple.connector.outbound;
 
+import javax.resource.Referenceable;
+import javax.resource.ResourceException;
+import java.io.Serializable;
+
 /**
  *
  * @author arungup
  */
-public class MyConnectionFactory {
+public interface MyConnectionFactory extends Serializable, Referenceable{
+
+    public MyConnectionImpl getConnection() throws ResourceException;
     
 }
